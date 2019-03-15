@@ -96,12 +96,14 @@ app.get("/user/:tuid/project", (req, res) => {
 
 app.get("/user/:TowsonID", (req, res) => {
      const user = users.find(u => {
-       return u.TowsonID === parseInt(req.params.TowsonID);
+         console.log(u.TowsonID);
+         console.log(req.params.TowsonID);
+       return u.TowsonID === req.params.TowsonID;
     });
         if(!users){
             res.status(404).send("The user with that id was not found!");
         }else{
-            res.status(200).send("Found the user!: ");
+            res.status(200).send(`Found the user: ${user.name}`);
         }
 });
 
