@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  CD-sql:
+    image: mysql:8.0.15
+    environment:
+      MYSQL_ROOT_PASSWORD: hello
+      MYSQL_DATABASE: CDdb
+    ports:
+      - "3306:3306"
+    
+    
