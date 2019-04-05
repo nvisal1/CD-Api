@@ -2,12 +2,30 @@
 const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
-const mysql = require('mysql');
-
+const MongoClient = require('mongodb').MongoClient;
+const assert = require('assert');
+require('dotenv').config();
+ 
 
 const app = express();
 
 const saltRounds = 10;
+
+// Connection URL
+const url = 'mongodb://localhost:27017';
+ 
+// Database Name
+const dbName = 'myproject';
+ 
+// Use connect method to connect to the server
+MongoClient.connect(process.env.MONGO_URI, function(err, client) {
+  assert.equal(null, err);
+  console.log("Connected successfully to server");
+ 
+  const db = client.db(dbName);
+ 
+  client.close();
+});
 
 //Mock user info
 const users = [
