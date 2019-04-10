@@ -29,6 +29,7 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
             password: "$2b$10$MxEw.lpmLjMvUc10oW6WZuhRUN1p.LkYvPN4hX5BFKZRBzFZWK1k6",
             TowsonID: "1111111",
             Semester: "2",
+            projectId: "12345"
         }
     ]
 
@@ -108,19 +109,53 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
 
     app.get("/users", (req, res) => {
         //get all users in the system. Don't display password. Return Users obj.
-
-
-
-
-
+        db.collection("users").find({},{projection: {password: 0}}).toArray(function(err,result){
+            if(err){
+                console.error(err);
+                res.status(500).json({message: "error"});
+            } else{
+                console.log(result);
+            }
+        });
     });
 
     app.get("/projects", (req, res) => {
         res.send(projects);
-    })
+        //display all projects and their users
+        db.collection("projects").find({}, {projection:{adminName:0}}).toArray(function(err,result){
+            if(err){
+                console.error(err);
+                res.status(500).json({message:"error"});
+            } else{
+                console.log(result);
+            }
+        });
+    });
 
     app.get("/user/:tuid/project", (req, res) => {
-        // const findProject = 
+        //find the all projects that a user has worked on
+        const query = {TowsonID: tuid};
+
+        //joining where, users.projectId = projects.projectId
+        db.collection('users').aggregate([
+            {
+                $lookup:
+                {
+                    from: 'projects',
+                    localField: 'projectId', //primary key from 'projects' collection
+                    foreignField:'projectId', //foreign key from 'users' collection
+                    as:'userProjects'
+                }
+            }
+        ]).toArray(function(err,result){
+            if(err){
+                console.error(err);
+                res.status(500).json({message: "error"});
+            } else{
+                console.log(result);
+            }
+        })
+
     })
 
     app.get("/user/:TowsonID", (req, res) => {
