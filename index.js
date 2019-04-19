@@ -74,49 +74,77 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
     app.post("/register", (req, res) => {
 
         const user = req.body;
-        db.collection("users").insertOne(user, function (err, result) {
-            if (err) {
+        bcrypt.hash(user.password, saltRounds, function(err, hash) { // Store hash in your password DB.
+            if(err){
                 console.error(err);
-                res.status(500).json({message: "error"})
-            } else {
-                console.log(result);
-                res.status(200).json({ message: "Register page" })
+                res.status(500).json({message: "Internal Server Error"});
+            } else{
+                db.collection("users").insertOne(user, function (err, result) {
+                    if (err) {
+                        console.error(err);
+                        res.status(500).json({message: "error"})
+                    } else {
+                        console.log(result);
+                        res.status(200).json({ message: "Register page" })
+                    }
+                });
+
             }
         });
     });
 
     app.post("/login", (req, res) => {
         const user = req.body;
-
-        if (user.email === users.email) {
-            bcrypt.compare(user.password, users.password, (err, isCorrect) => {
-                if (err) {
-                    res.sendStatus(500);
-                } else {
-                    if (isCorrect) {
-                        res.status(200).send(user);
-                    } else {
-                        res.status(404).json({ message: "Incorrect Password" });
-                    }
-                }
-
-            });
-
-        } else {
-            res.status(404).json({ message: "Incorrect Email" });
-        }
-    });
-
-    app.get("/users", (req, res) => {
-        //get all users in the system. Don't display password. Return Users obj.
-        db.collection("users").find({},{projection: {password: 0}}).toArray(function(err,result){
-            if(err){
+        
+        db.collection('users').findOne({
+            email: user.email,
+        }, function(err, result) {
+            if (err) {
                 console.error(err);
-                res.status(500).json({message: "error"});
-            } else{
-                console.log(result);
+                res.status(500).json({message: "Error"});
+            } else {
+                if (!result) {// Empty object returned by the database 
+                    console.log("Email not in database");
+                    res.status(404).json({message: "Not Found"});
+                } else {
+                    bcrypt.compare(user.password, users.password, (err, isCorrect) => {
+                        if (err) {
+                            res.sendStatus(500);
+                        } else {
+                            if (isCorrect) {
+                                res.status(200).send(user);
+                            } else {
+                                res.status(404).json({ message: "Incorrect Password" });
+                            }
+                        }
+                    })
+                }
             }
-        });
+        })
+    });
+    
+    app.get("/users", (req, res) => {
+
+        if (req.query.text) {
+            db.collection("users").find({email: req.query.text},{projection: {password: 0}}).toArray(function(err,result){
+                if(err){
+                    console.error(err);
+                    res.status(500).json({message: "error"});
+                } else{
+                    console.log(result);
+                }
+            });
+        } else {
+            //get all users in the system. Don't display password. Return Users obj.
+            db.collection("users").find({},{projection: {password: 0}}).toArray(function(err,result) {
+                if(err){
+                    console.error(err);
+                    res.status(500).json({message: "error"});
+                } else{
+                    console.log(result);
+                }
+            });
+        }
     });
 
     app.get("/projects", (req, res) => {
