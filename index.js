@@ -214,6 +214,20 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
         }
     });
 
+    app.post("/project", (req,res) => {
+        const project = req.body;
+
+        db.collection("projects").insertOne(project, function(err,result){
+            if(err){
+                console.log(err);
+                res.status(500).json({message:"err"});
+            } else{
+                console.log(result);
+                res.status(200).json({result});
+            }
+        })
+    })
+
     const port = process.env.PORT || 4000;
 
     app.listen(3000, () => {
