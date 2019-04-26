@@ -202,16 +202,17 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
     })
 
     app.get("/user/:TowsonID", (req, res) => {
-        const user = users.find(u => {
-            console.log(u.TowsonID);
-            console.log(req.params.TowsonID);
-            return u.TowsonID === req.params.TowsonID;
-        });
-        if (!users) {
-            res.status(404).send("The user with that id was not found!");
-        } else {
-            res.status(200).send(`Found the user: ${user.name}`);
-        }
+        const user = req.params.TowsonID;
+        db.collection("users").findOne({TowsonID:user},function(err,result){
+            if (err) {
+                console.log(err)
+                res.status(500).json({message:"err"});
+            } else if (!user){
+                res.status(404).send("The user with that id was not found!");
+            } else {
+                res.status(200).send(`Found the user: ${user.name}`);
+            }
+        })    
     });
 
     app.post("/project", (req,res) => {
@@ -227,6 +228,8 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
             }
         })
     })
+
+
 
     const port = process.env.PORT || 4000;
 
