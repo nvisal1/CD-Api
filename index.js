@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const express = require('express');
 const bodyParser = require('body-parser');
 const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectID;
 const assert = require('assert');
 require('dotenv').config();
 
@@ -38,7 +39,10 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
         {
             "projectId": 1,
             "project": "project1",
-            "users": 2,
+            "users": [
+                "12345",
+                "98765"
+            ],
             "adminName": "Charles"
         },
         {
@@ -79,7 +83,7 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
                 console.error(err);
                 res.status(500).json({message: "Internal Server Error"});
             } else{
-                db.collection("users").insertOne(user, function (err, result) {
+                db.collection("users").insertOne({...user, password: hash}, function (err, result) {
                     if (err) {
                         console.error(err);
                         res.status(500).json({message: "error"})
@@ -95,7 +99,6 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
 
     app.post("/login", (req, res) => {
         const user = req.body;
-        
         db.collection('users').findOne({
             email: user.email,
         }, function(err, result) {
@@ -107,7 +110,7 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
                     console.log("Email not in database");
                     res.status(404).json({message: "Not Found"});
                 } else {
-                    bcrypt.compare(user.password, users.password, (err, isCorrect) => {
+                    bcrypt.compare(user.password, result.password, (err, isCorrect) => {
                         if (err) {
                             res.sendStatus(500);
                         } else {
@@ -124,14 +127,13 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
     });
     
     app.get("/users", (req, res) => {
-
-        if (req.query.text) {
-            db.collection("users").find({email: req.query.text},{projection: {password: 0}}).toArray(function(err,result){
+        if (req.query.id) {
+            db.collection("users").find({_id: new ObjectId(req.query.id)},{projection: {password: 0}}).toArray(function(err,result){
                 if(err){
                     console.error(err);
-                    res.status(500).json({message: "error"});
+                    res.status(500).json({message: "error, unable to find user"});
                 } else{
-                    console.log(result);
+                    res.status(200).json(result);
                 }
             });
         } else {
@@ -141,24 +143,37 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
                     console.error(err);
                     res.status(500).json({message: "error"});
                 } else{
-                    console.log(result);
+                    res.status(200).json(result);
                 }
             });
         }
     });
+    
 
     app.get("/projects", (req, res) => {
-        res.send(projects);
         //display all projects and their users
-        db.collection("projects").find({}, {projection:{adminName:0}}).toArray(function(err,result){
-            if(err){
-                console.error(err);
-                res.status(500).json({message:"error"});
-            } else{
-                console.log(result);
-            }
-        });
+        if(req.query.projectId){
+            db.collection("projects").findOne({_id: new ObjectId(req.query.projectId)}, function(err, result){
+                if(err){
+                    res.status(500);
+                } else if (!result){      
+                    res.status(404).json({message: "Could not find project"});
+                } else{
+                    res.status(200).json(result);
+                }
+            })
+        } else{
+            db.collection("projects").find({}).toArray(function(err,result){
+                if(err){
+                    res.status(500).json({message:"error"});
+                } else{
+                    res.status(200).json({result});
+                }
+            }); 
+        }
     });
+
+    
 
     app.get("/user/:tuid/project", (req, res) => {
         //find the all projects that a user has worked on
@@ -180,7 +195,7 @@ MongoClient.connect(process.env.MONGO_URI, function (err, client) {
                 console.error(err);
                 res.status(500).json({message: "error"});
             } else{
-                console.log(result);
+                res.status(200).json(result);
             }
         })
 
